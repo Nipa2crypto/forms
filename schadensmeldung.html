@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Interne Schadensmeldung</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+  <script src="js/common.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand-group">
+        <div class="logo-badge">MH</div>
+        <div><div class="brand-title">Interne Schadensmeldung</div><div class="brand-sub">Kompakt, mobil, PDF-fertig</div></div>
+      </div>
+      <a class="link-btn secondary" href="index.html">Übersicht</a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="card"><a class="backlink" href="index.html">← Zurück zur Übersicht</a></div>
+
+    <section class="card">
+      <div class="section-head"><h2>Schadeninformation</h2></div>
+      <div class="grid grid-3">
+        <div><label for="meldedatum">Meldedatum</label><input id="meldedatum" type="date" /></div>
+        <div><label for="meldezeit">Meldezeit</label><input id="meldezeit" type="time" /></div>
+        <div><label for="ort">Ort</label><input id="ort" type="text" placeholder="z. B. Halle 2" /></div>
+      </div>
+      <div class="grid grid-3" style="margin-top:12px;">
+        <div><label for="abteilung">Abteilung</label><input id="abteilung" type="text" placeholder="z. B. Werkstatt" /></div>
+        <div><label for="fahrzeug">Fahrzeug / Objekt</label><input id="fahrzeug" type="text" placeholder="z. B. BMW G21" /></div>
+        <div><label for="kennzeichen">Kennzeichen</label><input id="kennzeichen" type="text" placeholder="z. B. FL 12345" /></div>
+      </div>
+      <div class="grid grid-2" style="margin-top:12px;">
+        <div><label for="vin">VIN</label><input id="vin" type="text" placeholder="Optional" /></div>
+        <div><label for="auftrag">Auftragsnummer</label><input id="auftrag" type="text" placeholder="Optional" /></div>
+      </div>
+      <div style="margin-top:12px;"><label for="beschreibung">Schadenbeschreibung</label><textarea id="beschreibung" placeholder="Was ist passiert, was ist beschädigt?"></textarea></div>
+      <div class="grid grid-2" style="margin-top:12px;">
+        <div><label for="ursache">Vermutete Ursache</label><input id="ursache" type="text" /></div>
+        <div><label for="dringlichkeit">Dringlichkeit</label>
+          <select id="dringlichkeit"><option value="">Bitte wählen…</option><option>Sofort</option><option>Diese Woche</option><option>Planbar</option></select>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-head"><h2>Verantwortung & Aufwand</h2></div>
+      <div class="grid grid-2">
+        <div><label for="melder">Melder</label><input id="melder" type="text" placeholder="Vorname Nachname" /></div>
+        <div><label for="verursacher">Schadenverursacher</label><input id="verursacher" type="text" placeholder="falls bekannt" /></div>
+      </div>
+      <div class="grid grid-3" style="margin-top:12px;">
+        <div><label for="materialkosten">Materialkosten CHF</label><input id="materialkosten" type="number" min="0" step="0.01" /></div>
+        <div><label for="lohnkosten">Lohnkosten CHF</label><input id="lohnkosten" type="number" min="0" step="0.01" /></div>
+        <div><label for="gesamt">Schadenhöhe gesamt CHF</label><input id="gesamt" type="number" readonly /></div>
+      </div>
+      <div class="grid grid-2" style="margin-top:12px;">
+        <div><label for="material">Material / Teile</label><input id="material" type="text" placeholder="Kurzliste" /></div>
+        <div><label for="massnahmen">Sofortmaßnahme</label><input id="massnahmen" type="text" placeholder="z. B. Fahrzeug gesichert" /></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-head"><h2>Fotos / Belegbilder</h2></div>
+      <div><label for="fotos">Bilder auswählen</label><input id="fotos" type="file" accept="image/*" multiple /></div>
+      <div id="fotoListe" class="preview-list" style="margin-top:12px;"></div>
+      <small class="hint">Im PDF werden die Dateinamen dokumentiert. Bild-Einbettung kann später bei Bedarf wieder ergänzt werden.</small>
+    </section>
+
+    <section class="card">
+      <div class="page-actions"><button type="button" id="pdfBtn">PDF erstellen</button><button type="button" class="ghost" id="resetBtn">Formular leeren</button></div>
+      <div id="status" class="status"></div>
+    </section>
+  </main>
+
+  <script>
+    const H = window.HeideggerForms;
+    const statusEl = H.byId('status');
+    const photoInput = H.byId('fotos');
+    const photoList = H.byId('fotoListe');
+
+    function updateTotal() {
+      const total = Number(H.byId('materialkosten').value || 0) + Number(H.byId('lohnkosten').value || 0);
+      H.byId('gesamt').value = H.formatMoney(total);
+    }
+    H.byId('materialkosten').addEventListener('input', updateTotal);
+    H.byId('lohnkosten').addEventListener('input', updateTotal);
+
+    photoInput.addEventListener('change', () => {
+      const names = H.collectFiles(photoInput);
+      photoList.innerHTML = names.length ? names.map(n => `<div class="preview-pill">${n}</div>`).join('') : '';
+    });
+
+    function resetForm() {
+      if (!confirm('Formular wirklich leeren?')) return;
+      document.querySelectorAll('input, textarea, select').forEach(el => {
+        if (el.type === 'file') el.value = '';
+        else el.value = '';
+      });
+      photoList.innerHTML = '';
+      H.byId('gesamt').value = '';
+      H.showStatus(statusEl, 'Formular geleert.');
+    }
+
+    function makePdf() {
+      try {
+        const doc = H.getPdf();
+        let y = H.pdfHeader(doc, 'Interne Schadensmeldung');
+        y = H.pdfMetaTable(doc, [
+          ['Meldedatum', H.byId('meldedatum').value],
+          ['Meldezeit', H.byId('meldezeit').value],
+          ['Ort', H.byId('ort').value],
+          ['Abteilung', H.byId('abteilung').value],
+          ['Fahrzeug / Objekt', H.byId('fahrzeug').value],
+          ['Kennzeichen', H.byId('kennzeichen').value],
+          ['VIN', H.byId('vin').value],
+          ['Auftragsnummer', H.byId('auftrag').value]
+        ], y);
+
+        H.pdfSectionTitle(doc, 'Schadenbeschreibung', y);
+        doc.autoTable({
+          startY: y + 3,
+          theme: 'grid',
+          styles: { fontSize: 9, cellPadding: 2.5 },
+          body: [
+            ['Beschreibung', H.byId('beschreibung').value || '—'],
+            ['Vermutete Ursache', H.byId('ursache').value || '—'],
+            ['Dringlichkeit', H.byId('dringlichkeit').value || '—']
+          ],
+          columnStyles: { 0: { fontStyle: 'bold', fillColor: [247,248,250], cellWidth: 38 } }
+        });
+
+        let nextY = doc.lastAutoTable.finalY + 6;
+        H.pdfSectionTitle(doc, 'Verantwortung & Aufwand', nextY);
+        doc.autoTable({
+          startY: nextY + 3,
+          theme: 'grid',
+          styles: { fontSize: 9, cellPadding: 2.5 },
+          body: [
+            ['Melder', H.byId('melder').value || '—'],
+            ['Verursacher', H.byId('verursacher').value || '—'],
+            ['Materialkosten', H.byId('materialkosten').value ? `${H.formatMoney(H.byId('materialkosten').value)} CHF` : '—'],
+            ['Lohnkosten', H.byId('lohnkosten').value ? `${H.formatMoney(H.byId('lohnkosten').value)} CHF` : '—'],
+            ['Schadenhöhe gesamt', H.byId('gesamt').value ? `${H.formatMoney(H.byId('gesamt').value)} CHF` : '—'],
+            ['Material / Teile', H.byId('material').value || '—'],
+            ['Sofortmaßnahme', H.byId('massnahmen').value || '—']
+          ],
+          columnStyles: { 0: { fontStyle: 'bold', fillColor: [247,248,250], cellWidth: 45 } }
+        });
+
+        let photoY = doc.lastAutoTable.finalY + 6;
+        H.pdfSectionTitle(doc, 'Fotos / Belegbilder', photoY);
+        doc.autoTable({
+          startY: photoY + 3,
+          theme: 'grid',
+          styles: { fontSize: 9, cellPadding: 2.5 },
+          body: (H.collectFiles(photoInput).length ? H.collectFiles(photoInput) : ['Keine Anhänge']).map(name => [name])
+        });
+
+        H.savePdf(doc, 'interne_schadensmeldung');
+      } catch (err) {
+        H.showStatus(statusEl, 'PDF konnte nicht erstellt werden.');
+      }
+    }
+
+    H.byId('pdfBtn').addEventListener('click', makePdf);
+    H.byId('resetBtn').addEventListener('click', resetForm);
+  </script>
+</body>
+</html>

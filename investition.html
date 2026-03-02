@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Antrag auf Investitionen Aftersales</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+  <script src="js/common.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand-group">
+        <div class="logo-badge">MH</div>
+        <div><div class="brand-title">Antrag auf Investitionen Aftersales</div><div class="brand-sub">Entscheidungsgrundlage als PDF</div></div>
+      </div>
+      <a class="link-btn secondary" href="index.html">Übersicht</a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="card"><a class="backlink" href="index.html">← Zurück zur Übersicht</a></div>
+
+    <section class="card">
+      <div class="section-head"><h2>Grunddaten</h2></div>
+      <div class="grid grid-3">
+        <div><label for="antragsteller">Antragsteller</label><input id="antragsteller" type="text" placeholder="z. B. Niels Packebusch" /></div>
+        <div><label for="abteilung">Bereich</label><input id="abteilung" type="text" placeholder="Aftersales" /></div>
+        <div><label for="datum">Datum</label><input id="datum" type="date" /></div>
+      </div>
+      <div class="grid grid-2" style="margin-top:12px;">
+        <div><label for="titel">Bezeichnung der Investition</label><input id="titel" type="text" placeholder="z. B. Neue Reifenauswuchtmaschine" /></div>
+        <div><label for="lieferant">Bevorzugter Lieferant</label><input id="lieferant" type="text" placeholder="Optional" /></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-head"><h2>Wirtschaftlichkeit & Nutzen</h2></div>
+      <div class="grid grid-3">
+        <div><label for="netto">Anschaffungskosten netto CHF</label><input id="netto" type="number" min="0" step="0.01" /></div>
+        <div><label for="folgekosten">Jährliche Folgekosten CHF</label><input id="folgekosten" type="number" min="0" step="0.01" /></div>
+        <div><label for="einsparung">Geschätzter Nutzen / Einsparung p.a. CHF</label><input id="einsparung" type="number" min="0" step="0.01" /></div>
+      </div>
+      <div class="grid grid-2" style="margin-top:12px;">
+        <div><label for="begruendung">Begründung</label><textarea id="begruendung" placeholder="Warum wird die Investition benötigt?"></textarea></div>
+        <div><label for="nutzen">Konkreter Nutzen</label><textarea id="nutzen" placeholder="Zeitgewinn, Qualität, Umsatz, Sicherheit, Schulung …"></textarea></div>
+      </div>
+      <div class="grid grid-2" style="margin-top:12px;">
+        <div><label for="alternativen">Geprüfte Alternativen</label><textarea id="alternativen" placeholder="z. B. Reparatur Altgerät / Leasing / gebraucht"></textarea></div>
+        <div><label for="konsequenz">Folge bei Nichtfreigabe</label><textarea id="konsequenz" placeholder="Was passiert ohne die Investition?"></textarea></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-head"><h2>Einordnung</h2></div>
+      <div class="grid grid-3">
+        <div>
+          <label>Priorität</label>
+          <select id="prioritaet"><option value="">Bitte wählen…</option><option>Hoch</option><option>Mittel</option><option>Niedrig</option></select>
+        </div>
+        <div>
+          <label>Investitionsart</label>
+          <select id="art"><option value="">Bitte wählen…</option><option>Werkzeug</option><option>Maschine</option><option>IT / Software</option><option>Ausstattung</option><option>Sonstiges</option></select>
+        </div>
+        <div>
+          <label>Dringlichkeit</label>
+          <select id="dringlichkeit"><option value="">Bitte wählen…</option><option>Sofort</option><option>Innerhalb 30 Tage</option><option>Planbar</option></select>
+        </div>
+      </div>
+      <div style="margin-top:12px;"><label for="bemerkung">Bemerkung</label><textarea id="bemerkung" placeholder="Optional"></textarea></div>
+    </section>
+
+    <section class="card">
+      <div class="page-actions"><button type="button" id="pdfBtn">PDF erstellen</button><button type="button" class="ghost" id="resetBtn">Formular leeren</button></div>
+      <div id="status" class="status"></div>
+    </section>
+  </main>
+
+  <script>
+    const H = window.HeideggerForms;
+    const statusEl = H.byId('status');
+
+    function resetForm() {
+      if (!confirm('Formular wirklich leeren?')) return;
+      document.querySelectorAll('input, textarea, select').forEach(el => el.value = '');
+      H.showStatus(statusEl, 'Formular geleert.');
+    }
+
+    function makePdf() {
+      try {
+        const doc = H.getPdf();
+        let y = H.pdfHeader(doc, 'Antrag auf Investitionen Aftersales');
+        y = H.pdfMetaTable(doc, [
+          ['Antragsteller', H.byId('antragsteller').value],
+          ['Bereich', H.byId('abteilung').value],
+          ['Datum', H.byId('datum').value],
+          ['Investition', H.byId('titel').value],
+          ['Lieferant', H.byId('lieferant').value]
+        ], y);
+
+        H.pdfSectionTitle(doc, 'Kosten & Wirtschaftlichkeit', y);
+        doc.autoTable({
+          startY: y + 3,
+          theme: 'grid',
+          head: [['Position', 'Wert']],
+          body: [
+            ['Anschaffungskosten netto', H.byId('netto').value ? `${H.formatMoney(H.byId('netto').value)} CHF` : '—'],
+            ['Jährliche Folgekosten', H.byId('folgekosten').value ? `${H.formatMoney(H.byId('folgekosten').value)} CHF` : '—'],
+            ['Geschätzter Nutzen / Einsparung p.a.', H.byId('einsparung').value ? `${H.formatMoney(H.byId('einsparung').value)} CHF` : '—'],
+            ['Priorität', H.byId('prioritaet').value || '—'],
+            ['Investitionsart', H.byId('art').value || '—'],
+            ['Dringlichkeit', H.byId('dringlichkeit').value || '—']
+          ],
+          headStyles: { fillColor: [17,24,39] },
+          styles: { fontSize: 9, cellPadding: 2.5 }
+        });
+
+        let nextY = doc.lastAutoTable.finalY + 6;
+        doc.autoTable({
+          startY: nextY,
+          theme: 'grid',
+          styles: { fontSize: 9, cellPadding: 2.8 },
+          body: [
+            ['Begründung', H.byId('begruendung').value || '—'],
+            ['Konkreter Nutzen', H.byId('nutzen').value || '—'],
+            ['Geprüfte Alternativen', H.byId('alternativen').value || '—'],
+            ['Folge bei Nichtfreigabe', H.byId('konsequenz').value || '—'],
+            ['Bemerkung', H.byId('bemerkung').value || '—']
+          ],
+          columnStyles: { 0: { fontStyle: 'bold', fillColor: [247,248,250], cellWidth: 45 } }
+        });
+
+        H.savePdf(doc, 'investitionsantrag_aftersales');
+      } catch (err) {
+        H.showStatus(statusEl, 'PDF konnte nicht erstellt werden.');
+      }
+    }
+
+    H.byId('pdfBtn').addEventListener('click', makePdf);
+    H.byId('resetBtn').addEventListener('click', resetForm);
+  </script>
+</body>
+</html>

@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Unfallmeldung</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+  <script src="js/common.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand-group">
+        <div class="logo-badge">MH</div>
+        <div><div class="brand-title">Unfallmeldung</div><div class="brand-sub">Kompakte Ersterfassung mit PDF-Export</div></div>
+      </div>
+      <a class="link-btn secondary" href="index.html">Übersicht</a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="card"><a class="backlink" href="index.html">← Zurück zur Übersicht</a></div>
+
+    <section class="card">
+      <div class="section-head"><h2>Basisdaten</h2></div>
+      <div class="grid grid-3">
+        <div><label for="datum">Datum</label><input id="datum" type="date" /></div>
+        <div><label for="zeit">Zeit</label><input id="zeit" type="time" /></div>
+        <div><label for="ort">Ort</label><input id="ort" type="text" placeholder="z. B. Werkstatt / Parkplatz" /></div>
+      </div>
+      <div class="grid grid-2" style="margin-top:12px;">
+        <div><label for="melder">Meldende Person</label><input id="melder" type="text" /></div>
+        <div><label for="betroffene">Betroffene Person</label><input id="betroffene" type="text" /></div>
+      </div>
+      <div class="grid grid-2" style="margin-top:12px;">
+        <div><label for="abteilung">Abteilung</label><input id="abteilung" type="text" /></div>
+        <div><label for="zeuge">Zeugen</label><input id="zeuge" type="text" placeholder="Optional" /></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-head"><h2>Unfallhergang</h2></div>
+      <div><label for="hergang">Beschreibung des Hergangs</label><textarea id="hergang" placeholder="Was ist passiert?"></textarea></div>
+      <div class="grid grid-2" style="margin-top:12px;">
+        <div><label for="verletzung">Verletzung / Schaden</label><textarea id="verletzung" placeholder="Welche Verletzung oder welcher Sachschaden liegt vor?"></textarea></div>
+        <div><label for="massnahmen">Sofortmaßnahme / Erste Hilfe</label><textarea id="massnahmen" placeholder="Welche Maßnahmen wurden direkt eingeleitet?"></textarea></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-head"><h2>Einordnung</h2></div>
+      <div class="grid grid-3">
+        <div>
+          <label>Art des Vorfalls</label>
+          <select id="art"><option value="">Bitte wählen…</option><option>Personenunfall</option><option>Beinaheunfall</option><option>Sachschaden</option><option>Wegeunfall</option></select>
+        </div>
+        <div>
+          <label>Arzt / Spital erforderlich</label>
+          <select id="arzt"><option value="">Bitte wählen…</option><option>Ja</option><option>Nein</option></select>
+        </div>
+        <div>
+          <label>SUVA / Versicherung informieren</label>
+          <select id="versicherung"><option value="">Bitte wählen…</option><option>Ja</option><option>Nein</option></select>
+        </div>
+      </div>
+      <div style="margin-top:12px;"><label for="bemerkung">Bemerkung</label><textarea id="bemerkung" placeholder="Optional"></textarea></div>
+    </section>
+
+    <section class="card">
+      <div class="page-actions"><button type="button" id="pdfBtn">PDF erstellen</button><button type="button" class="ghost" id="resetBtn">Formular leeren</button></div>
+      <div id="status" class="status"></div>
+    </section>
+  </main>
+
+  <script>
+    const H = window.HeideggerForms;
+    const statusEl = H.byId('status');
+
+    function resetForm() {
+      if (!confirm('Formular wirklich leeren?')) return;
+      document.querySelectorAll('input, textarea, select').forEach(el => el.value = '');
+      H.showStatus(statusEl, 'Formular geleert.');
+    }
+
+    function makePdf() {
+      try {
+        const doc = H.getPdf();
+        let y = H.pdfHeader(doc, 'Unfallmeldung');
+        y = H.pdfMetaTable(doc, [
+          ['Datum', H.byId('datum').value],
+          ['Zeit', H.byId('zeit').value],
+          ['Ort', H.byId('ort').value],
+          ['Meldende Person', H.byId('melder').value],
+          ['Betroffene Person', H.byId('betroffene').value],
+          ['Abteilung', H.byId('abteilung').value],
+          ['Zeugen', H.byId('zeuge').value]
+        ], y);
+
+        H.pdfSectionTitle(doc, 'Unfallhergang', y);
+        doc.autoTable({
+          startY: y + 3,
+          theme: 'grid',
+          styles: { fontSize: 9, cellPadding: 2.8 },
+          body: [
+            ['Beschreibung des Hergangs', H.byId('hergang').value || '—'],
+            ['Verletzung / Schaden', H.byId('verletzung').value || '—'],
+            ['Sofortmaßnahme / Erste Hilfe', H.byId('massnahmen').value || '—']
+          ],
+          columnStyles: { 0: { fontStyle: 'bold', fillColor: [247,248,250], cellWidth: 52 } }
+        });
+
+        let nextY = doc.lastAutoTable.finalY + 6;
+        doc.autoTable({
+          startY: nextY,
+          theme: 'grid',
+          styles: { fontSize: 9, cellPadding: 2.5 },
+          body: [
+            ['Art des Vorfalls', H.byId('art').value || '—'],
+            ['Arzt / Spital erforderlich', H.byId('arzt').value || '—'],
+            ['SUVA / Versicherung informieren', H.byId('versicherung').value || '—'],
+            ['Bemerkung', H.byId('bemerkung').value || '—']
+          ],
+          columnStyles: { 0: { fontStyle: 'bold', fillColor: [247,248,250], cellWidth: 52 } }
+        });
+
+        H.savePdf(doc, 'unfallmeldung');
+      } catch (err) {
+        H.showStatus(statusEl, 'PDF konnte nicht erstellt werden.');
+      }
+    }
+
+    H.byId('pdfBtn').addEventListener('click', makePdf);
+    H.byId('resetBtn').addEventListener('click', resetForm);
+  </script>
+</body>
+</html>

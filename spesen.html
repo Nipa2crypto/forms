@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Spesenabrechnung</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+  <script src="js/common.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand-group">
+        <div class="logo-badge">MH</div>
+        <div><div class="brand-title">Spesenabrechnung</div><div class="brand-sub">PDF-Ausgabe ohne Speicherung</div></div>
+      </div>
+      <a class="link-btn secondary" href="index.html">Übersicht</a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="card">
+      <a class="backlink" href="index.html">← Zurück zur Übersicht</a>
+    </div>
+
+    <section class="card">
+      <div class="section-head"><h2>Stammdaten</h2></div>
+      <div class="grid grid-4">
+        <div><label for="name">Name</label><input id="name" type="text" placeholder="z. B. Max Muster" /></div>
+        <div><label for="abteilung">Abteilung</label><input id="abteilung" type="text" placeholder="z. B. Werkstatt" /></div>
+        <div><label for="marke">Marke</label><input id="marke" type="text" placeholder="z. B. BMW" /></div>
+        <div><label for="formularDatum">Datum</label><input id="formularDatum" type="date" /></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <h2>Spesenpositionen</h2>
+        <button type="button" id="addRowBtn">Weitere Position</button>
+      </div>
+      <div id="items"></div>
+      <div class="total-box"><span>Total Spesen</span><span><span id="total">0.00</span> CHF</span></div>
+      <small class="hint">Maximal 4 Positionen. Die PDF-Ausgabe ist auf ein kompaktes Standardformular ausgelegt.</small>
+    </section>
+
+    <section class="card">
+      <div class="section-head"><h2>Zusatzangaben</h2></div>
+      <div class="grid grid-3">
+        <div>
+          <label>Verrechnen</label>
+          <div class="inline-options">
+            <label><input type="radio" name="verrechnen" value="Nein" checked /> Nein</label>
+            <label><input type="radio" name="verrechnen" value="Ja" /> Ja</label>
+          </div>
+        </div>
+        <div><label for="kartenNr">Karten Nr.</label><input id="kartenNr" type="text" /></div>
+        <div><label for="visum">Visum</label><input id="visum" type="text" /></div>
+      </div>
+      <div class="grid grid-2" style="margin-top:12px;">
+        <div><label for="betragErhalten">Betrag erhalten</label><input id="betragErhalten" type="number" min="0" step="0.01" placeholder="0.00" /></div>
+        <div><label for="bemerkung">Bemerkung</label><textarea id="bemerkung" placeholder="Optional"></textarea></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="page-actions">
+        <button type="button" id="pdfBtn">PDF erstellen</button>
+        <button type="button" class="ghost" id="resetBtn">Formular leeren</button>
+      </div>
+      <div id="status" class="status"></div>
+      <div class="footer-note">Für den Rollout sollte der Link direkt auf die Web-App zeigen, nicht auf eine HTML-Datei in Teams-Dateien.</div>
+    </section>
+  </main>
+
+  <template id="rowTpl">
+    <div class="item-row">
+      <div class="item-row-head">
+        <strong>Position <span class="row-index"></span></strong>
+        <button type="button" class="danger removeBtn">Entfernen</button>
+      </div>
+      <div class="grid grid-4">
+        <div><label>Datum</label><input type="date" class="i-date" /></div>
+        <div><label>Bezeichnung</label><input type="text" class="i-desc" placeholder="z. B. Parkgebühr" /></div>
+        <div><label>Teilnehmer</label><input type="text" class="i-part" placeholder="Optional" /></div>
+        <div><label>Betrag CHF</label><input type="number" class="i-amount" min="0" step="0.01" placeholder="0.00" /></div>
+      </div>
+    </div>
+  </template>
+
+  <script>
+    const H = window.HeideggerForms;
+    const items = H.byId('items');
+    const rowTpl = H.byId('rowTpl');
+    const totalEl = H.byId('total');
+    const statusEl = H.byId('status');
+    const MAX_ROWS = 4;
+
+    function reindex() {
+      const rows = [...document.querySelectorAll('.item-row')];
+      rows.forEach((row, i) => row.querySelector('.row-index').textContent = i + 1);
+      rows.forEach((row, i) => {
+        const btn = row.querySelector('.removeBtn');
+        btn.disabled = rows.length === 1;
+        btn.style.opacity = rows.length === 1 ? '.55' : '1';
+        btn.style.cursor = rows.length === 1 ? 'not-allowed' : 'pointer';
+      });
+      H.byId('addRowBtn').disabled = rows.length >= MAX_ROWS;
+      H.byId('addRowBtn').style.opacity = rows.length >= MAX_ROWS ? '.55' : '1';
+    }
+
+    function updateTotal() {
+      let total = 0;
+      document.querySelectorAll('.i-amount').forEach(el => total += Number(el.value || 0));
+      totalEl.textContent = H.formatMoney(total);
+    }
+
+    function addRow() {
+      if (document.querySelectorAll('.item-row').length >= MAX_ROWS) return;
+      const node = rowTpl.content.cloneNode(true);
+      const row = node.querySelector('.item-row');
+      row.querySelectorAll('input').forEach(el => el.addEventListener('input', updateTotal));
+      row.querySelector('.removeBtn').addEventListener('click', () => {
+        if (document.querySelectorAll('.item-row').length === 1) return;
+        row.remove();
+        reindex();
+        updateTotal();
+      });
+      items.appendChild(row);
+      reindex();
+      updateTotal();
+    }
+
+    function resetForm() {
+      if (!confirm('Formular wirklich leeren?')) return;
+      document.querySelectorAll('input:not([type="radio"]), textarea').forEach(el => el.value = '');
+      document.querySelector('input[name="verrechnen"][value="Nein"]').checked = true;
+      items.innerHTML = '';
+      addRow();
+      H.showStatus(statusEl, 'Formular geleert.');
+    }
+
+    function collect() {
+      return {
+        name: H.byId('name').value,
+        abteilung: H.byId('abteilung').value,
+        marke: H.byId('marke').value,
+        formularDatum: H.byId('formularDatum').value,
+        verrechnen: document.querySelector('input[name="verrechnen"]:checked')?.value || 'Nein',
+        kartenNr: H.byId('kartenNr').value,
+        visum: H.byId('visum').value,
+        betragErhalten: H.byId('betragErhalten').value,
+        bemerkung: H.byId('bemerkung').value,
+        rows: [...document.querySelectorAll('.item-row')].map(row => ({
+          datum: row.querySelector('.i-date').value,
+          text: row.querySelector('.i-desc').value,
+          teilnehmer: row.querySelector('.i-part').value,
+          betrag: row.querySelector('.i-amount').value
+        }))
+      };
+    }
+
+    function makePdf() {
+      try {
+        const data = collect();
+        const doc = H.getPdf();
+        let y = H.pdfHeader(doc, 'Spesenabrechnung');
+        y = H.pdfMetaTable(doc, [
+          ['Name', data.name],
+          ['Abteilung', data.abteilung],
+          ['Marke', data.marke],
+          ['Datum', data.formularDatum]
+        ], y);
+
+        H.pdfSectionTitle(doc, 'Spesenpositionen', y);
+        doc.autoTable({
+          startY: y + 3,
+          head: [['Datum', 'Bezeichnung', 'Teilnehmer', 'Betrag CHF']],
+          body: data.rows.map(r => [r.datum || '—', r.text || '—', r.teilnehmer || '—', H.formatMoney(r.betrag)]),
+          theme: 'grid',
+          headStyles: { fillColor: [17,24,39] },
+          styles: { fontSize: 9, cellPadding: 2.5 },
+          foot: [['', '', 'Total', H.formatMoney(totalEl.textContent)]],
+          footStyles: { fillColor: [243,244,246], textColor: [17,24,39], fontStyle: 'bold' }
+        });
+
+        let nextY = doc.lastAutoTable.finalY + 8;
+        nextY = H.pdfMetaTable(doc, [
+          ['Verrechnen', data.verrechnen],
+          ['Karten Nr.', data.kartenNr],
+          ['Visum', data.visum],
+          ['Betrag erhalten', data.betragErhalten ? `${H.formatMoney(data.betragErhalten)} CHF` : '—'],
+          ['Bemerkung', data.bemerkung]
+        ], nextY);
+
+        H.savePdf(doc, 'spesenabrechnung');
+      } catch (err) {
+        H.showStatus(statusEl, 'PDF konnte nicht erstellt werden.');
+      }
+    }
+
+    H.byId('addRowBtn').addEventListener('click', addRow);
+    H.byId('pdfBtn').addEventListener('click', makePdf);
+    H.byId('resetBtn').addEventListener('click', resetForm);
+    addRow();
+  </script>
+</body>
+</html>
