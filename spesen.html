@@ -13,7 +13,7 @@
   <header class="topbar">
     <div class="topbar-inner">
       <div class="brand-group">
-        <div class="logo-wrap"><img src="assets/logo.png" alt="Max Heidegger AG Logo" /></div>
+        <div class="logo-badge">MH</div>
         <div><div class="brand-title">Spesenabrechnung</div><div class="brand-sub">PDF-Ausgabe ohne Speicherung</div></div>
       </div>
       <a class="link-btn secondary" href="index.html">Übersicht</a>
@@ -64,13 +64,20 @@
       </div>
     </section>
 
+
+    <section class="card">
+      <div class="section-head"><h2>Belege</h2></div>
+      <div><label for="belege">Bilder oder PDF auswählen</label><input id="belege" type="file" accept="image/*,.pdf,application/pdf" multiple /></div>
+      <div id="belegListe" class="preview-list" style="margin-top:12px;"></div>
+      <small class="hint">Bildbelege werden direkt in die PDF eingebettet. PDF-Dateien werden im PDF als Dateiname dokumentiert.</small>
+    </section>
+
     <section class="card">
       <div class="page-actions">
         <button type="button" id="pdfBtn">PDF erstellen</button>
         <button type="button" class="ghost" id="resetBtn">Formular leeren</button>
       </div>
       <div id="status" class="status"></div>
-      <div class="footer-note">Für den Rollout sollte der Link direkt auf die Web-App zeigen, nicht auf eine HTML-Datei in Teams-Dateien.</div>
     </section>
   </main>
 
@@ -95,12 +102,21 @@
     const rowTpl = H.byId('rowTpl');
     const totalEl = H.byId('total');
     const statusEl = H.byId('status');
+    const belegInput = H.byId('belege');
+    const belegListe = H.byId('belegListe');
     const MAX_ROWS = 4;
+
+    function renderBelegListe() {
+      const files = belegInput?.files ? [...belegInput.files] : [];
+      belegListe.innerHTML = files.length
+        ? files.map(file => `<div class="preview-pill">${file.name}</div>`).join('')
+        : '';
+    }
 
     function reindex() {
       const rows = [...document.querySelectorAll('.item-row')];
       rows.forEach((row, i) => row.querySelector('.row-index').textContent = i + 1);
-      rows.forEach((row, i) => {
+      rows.forEach((row) => {
         const btn = row.querySelector('.removeBtn');
         btn.disabled = rows.length === 1;
         btn.style.opacity = rows.length === 1 ? '.55' : '1';
@@ -132,9 +148,13 @@
       updateTotal();
     }
 
+    belegInput.addEventListener('change', renderBelegListe);
+
     function resetForm() {
       if (!confirm('Formular wirklich leeren?')) return;
       document.querySelectorAll('input:not([type="radio"]), textarea').forEach(el => el.value = '');
+      belegInput.value = '';
+      belegListe.innerHTML = '';
       document.querySelector('input[name="verrechnen"][value="Nein"]').checked = true;
       items.innerHTML = '';
       addRow();
@@ -152,6 +172,7 @@
         visum: H.byId('visum').value,
         betragErhalten: H.byId('betragErhalten').value,
         bemerkung: H.byId('bemerkung').value,
+        fileNames: H.collectFiles(belegInput),
         rows: [...document.querySelectorAll('.item-row')].map(row => ({
           datum: row.querySelector('.i-date').value,
           text: row.querySelector('.i-desc').value,
@@ -161,9 +182,14 @@
       };
     }
 
-    function makePdf() {
+    async function makePdf() {
       try {
         const data = collect();
+        const imageFiles = await H.collectImageData(belegInput);
+        const nonImageNames = (belegInput?.files ? [...belegInput.files] : [])
+          .filter(file => !file.type.startsWith('image/'))
+          .map(file => file.name);
+
         const doc = H.getPdf();
         let y = H.pdfHeader(doc, 'Spesenabrechnung');
         y = H.pdfMetaTable(doc, [
@@ -193,6 +219,21 @@
           ['Betrag erhalten', data.betragErhalten ? `${H.formatMoney(data.betragErhalten)} CHF` : '—'],
           ['Bemerkung', data.bemerkung]
         ], nextY);
+
+        H.pdfSectionTitle(doc, 'Belege', nextY);
+        doc.autoTable({
+          startY: nextY + 3,
+          theme: 'grid',
+          styles: { fontSize: 9, cellPadding: 2.5 },
+          body: (nonImageNames.length ? nonImageNames : ['Keine PDF-Anhänge']).map(name => [name])
+        });
+
+        let imageY = doc.lastAutoTable.finalY + 8;
+        if (imageFiles.length) {
+          H.pdfSectionTitle(doc, 'Bildbelege', imageY);
+          imageY += 4;
+          await H.addImagesToPdf(doc, imageFiles, imageY);
+        }
 
         H.savePdf(doc, 'spesenabrechnung');
       } catch (err) {

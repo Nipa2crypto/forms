@@ -13,7 +13,7 @@
   <header class="topbar">
     <div class="topbar-inner">
       <div class="brand-group">
-        <div class="logo-wrap"><img src="assets/logo.png" alt="Max Heidegger AG Logo" /></div>
+        <div class="logo-badge">MH</div>
         <div><div class="brand-title">Interne Schadensmeldung</div><div class="brand-sub">Kompakt, mobil, PDF-fertig</div></div>
       </div>
       <a class="link-btn secondary" href="index.html">Übersicht</a>
@@ -69,7 +69,7 @@
       <div class="section-head"><h2>Fotos / Belegbilder</h2></div>
       <div><label for="fotos">Bilder auswählen</label><input id="fotos" type="file" accept="image/*" multiple /></div>
       <div id="fotoListe" class="preview-list" style="margin-top:12px;"></div>
-      <small class="hint">Im PDF werden die Dateinamen dokumentiert. Bild-Einbettung kann später bei Bedarf wieder ergänzt werden.</small>
+      <small class="hint">Die ausgewählten Bilder werden direkt in die PDF eingebettet.</small>
     </section>
 
     <section class="card">
@@ -107,8 +107,9 @@
       H.showStatus(statusEl, 'Formular geleert.');
     }
 
-    function makePdf() {
+    async function makePdf() {
       try {
+        const imageFiles = await H.collectImageData(photoInput);
         const doc = H.getPdf();
         let y = H.pdfHeader(doc, 'Interne Schadensmeldung');
         y = H.pdfMetaTable(doc, [
@@ -155,12 +156,16 @@
 
         let photoY = doc.lastAutoTable.finalY + 6;
         H.pdfSectionTitle(doc, 'Fotos / Belegbilder', photoY);
-        doc.autoTable({
-          startY: photoY + 3,
-          theme: 'grid',
-          styles: { fontSize: 9, cellPadding: 2.5 },
-          body: (H.collectFiles(photoInput).length ? H.collectFiles(photoInput) : ['Keine Anhänge']).map(name => [name])
-        });
+        if (imageFiles.length) {
+          await H.addImagesToPdf(doc, imageFiles, photoY + 4);
+        } else {
+          doc.autoTable({
+            startY: photoY + 3,
+            theme: 'grid',
+            styles: { fontSize: 9, cellPadding: 2.5 },
+            body: [['Keine Anhänge']]
+          });
+        }
 
         H.savePdf(doc, 'interne_schadensmeldung');
       } catch (err) {

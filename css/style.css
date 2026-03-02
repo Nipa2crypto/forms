@@ -30,18 +30,13 @@ a { color: inherit; }
   max-width: 1080px; margin: 0 auto; padding: 14px 16px;
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
 }
-.logo-wrap {
-  width: 52px; height: 52px; border-radius: 14px;
-  background: #fff;
-  display: grid; place-items: center; overflow: hidden;
-  padding: 6px;
-  box-shadow: inset 0 0 0 1px rgba(17,24,39,.06);
-}
-.logo-wrap img {
-  width: 100%; height: 100%; object-fit: contain; display: block;
+.logo-badge {
+  width: 44px; height: 44px; border-radius: 12px;
+  background: rgba(255,255,255,.14);
+  display: grid; place-items: center; font-weight: 800; letter-spacing: .04em;
 }
 .brand-group { display: flex; align-items: center; gap: 12px; }
-.brand-title { font-size: 1.05rem; font-weight: 800; letter-spacing: .01em; }
+.brand-title { font-size: 1.05rem; font-weight: 800; }
 .brand-sub { font-size: .86rem; opacity: .8; }
 .link-btn, button {
   appearance: none; border: 0; border-radius: 12px;

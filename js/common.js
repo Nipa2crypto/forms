@@ -29,7 +29,9 @@ window.HeideggerForms = (() => {
     if (!input?.files?.length) return [];
     const files = [...input.files].filter(f => f.type.startsWith('image/'));
     const out = [];
-    for (const file of files) out.push(await fileToDataUrl(file));
+    for (const file of files) {
+      out.push({ name: file.name, dataUrl: await fileToDataUrl(file) });
+    }
     return out;
   }
   function getPdf() {
@@ -72,12 +74,75 @@ window.HeideggerForms = (() => {
     doc.text(title, 14, y);
     return y + 2;
   }
+  function getImageDimensions(dataUrl) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve({ width: img.naturalWidth || img.width, height: img.naturalHeight || img.height });
+      img.onerror = reject;
+      img.src = dataUrl;
+    });
+  }
+  async function addImagesToPdf(doc, images, startY, options = {}) {
+    if (!images?.length) return startY;
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const marginX = options.marginX ?? 14;
+    const marginBottom = options.marginBottom ?? 14;
+    const gap = options.gap ?? 6;
+    const maxWidth = options.maxWidth ?? ((pageWidth - (marginX * 2) - gap) / 2);
+    const maxHeight = options.maxHeight ?? 58;
+    let x = marginX;
+    let y = startY;
+    let col = 0;
+
+    for (const image of images) {
+      const dataUrl = typeof image === 'string' ? image : image.dataUrl;
+      const label = typeof image === 'string' ? '' : (image.name || '');
+      const dims = await getImageDimensions(dataUrl);
+      let drawW = maxWidth;
+      let drawH = dims.height ? (drawW * dims.height / dims.width) : maxHeight;
+      if (drawH > maxHeight) {
+        drawH = maxHeight;
+        drawW = dims.width ? (drawH * dims.width / dims.height) : maxWidth;
+      }
+      const blockHeight = drawH + (label ? 7 : 2);
+      if (y + blockHeight > pageHeight - marginBottom) {
+        doc.addPage();
+        y = 20;
+        x = marginX;
+        col = 0;
+      }
+      doc.setDrawColor(210, 214, 220);
+      doc.rect(x, y, drawW, drawH);
+      const format = dataUrl.includes('image/png') ? 'PNG' : 'JPEG';
+      doc.addImage(dataUrl, format, x, y, drawW, drawH, undefined, 'FAST');
+      if (label) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(75, 85, 99);
+        const text = label.length > 42 ? `${label.slice(0, 39)}...` : label;
+        doc.text(text, x, y + drawH + 4);
+      }
+      if (col === 0) {
+        x = marginX + maxWidth + gap;
+        col = 1;
+      } else {
+        x = marginX;
+        y += blockHeight + gap;
+        col = 0;
+      }
+    }
+    if (col === 1) {
+      y += maxHeight + 8;
+    }
+    return y;
+  }
   function savePdf(doc, fileNameBase) {
     const stamp = new Date().toISOString().slice(0, 10);
     doc.save(`${fileNameBase}_${stamp}.pdf`);
   }
   return {
     byId, formatMoney, escapeText, showStatus, collectFiles, collectImageData,
-    getPdf, pdfHeader, pdfMetaTable, pdfSectionTitle, savePdf
+    getPdf, pdfHeader, pdfMetaTable, pdfSectionTitle, addImagesToPdf, savePdf
   };
 })();
