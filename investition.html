@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Antrag auf Investitionen Aftersales</title>
+  <title>Antrag Beschaffung</title>
   <link rel="stylesheet" href="css/style.css" />
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
@@ -13,8 +13,11 @@
   <header class="topbar">
     <div class="topbar-inner">
       <div class="brand-group">
-        <div class="logo-badge">MH</div>
-        <div><div class="brand-title">Antrag auf Investitionen Aftersales</div><div class="brand-sub">Entscheidungsgrundlage als PDF</div></div>
+        <div class="logo-wrap"><img src="assets/logo.png" alt="Max Heidegger AG Logo" /></div>
+        <div>
+          <div class="brand-title">Antrag Beschaffung</div>
+          <div class="brand-sub">Investitionen / Anschaffungen als sauberes PDF</div>
+        </div>
       </div>
       <a class="link-btn secondary" href="index.html">Übersicht</a>
     </div>
@@ -24,122 +27,278 @@
     <div class="card"><a class="backlink" href="index.html">← Zurück zur Übersicht</a></div>
 
     <section class="card">
-      <div class="section-head"><h2>Grunddaten</h2></div>
+      <div class="section-head"><h2>Stammdaten</h2></div>
       <div class="grid grid-3">
-        <div><label for="antragsteller">Antragsteller</label><input id="antragsteller" type="text" placeholder="z. B. Niels Packebusch" /></div>
-        <div><label for="abteilung">Bereich</label><input id="abteilung" type="text" placeholder="Aftersales" /></div>
-        <div><label for="datum">Datum</label><input id="datum" type="date" /></div>
-      </div>
-      <div class="grid grid-2" style="margin-top:12px;">
-        <div><label for="titel">Bezeichnung der Investition</label><input id="titel" type="text" placeholder="z. B. Neue Reifenauswuchtmaschine" /></div>
-        <div><label for="lieferant">Bevorzugter Lieferant</label><input id="lieferant" type="text" placeholder="Optional" /></div>
+        <div>
+          <label for="name">Name</label>
+          <input id="name" type="text" placeholder="z. B. Max Muster" />
+        </div>
+        <div>
+          <label for="abteilung">Abteilung</label>
+          <input id="abteilung" type="text" placeholder="z. B. Werkstatt" />
+        </div>
+        <div>
+          <label for="kopfDatum">Datum</label>
+          <input id="kopfDatum" type="date" />
+        </div>
       </div>
     </section>
 
     <section class="card">
-      <div class="section-head"><h2>Wirtschaftlichkeit & Nutzen</h2></div>
-      <div class="grid grid-3">
-        <div><label for="netto">Anschaffungskosten netto CHF</label><input id="netto" type="number" min="0" step="0.01" /></div>
-        <div><label for="folgekosten">Jährliche Folgekosten CHF</label><input id="folgekosten" type="number" min="0" step="0.01" /></div>
-        <div><label for="einsparung">Geschätzter Nutzen / Einsparung p.a. CHF</label><input id="einsparung" type="number" min="0" step="0.01" /></div>
+      <div class="section-head">
+        <h2>Positionen</h2>
+        <button type="button" id="addRowBtn">Weitere Position</button>
+      </div>
+      <div id="itemsContainer"></div>
+      <div class="total-box">
+        <span>Total Invest</span>
+        <span><span id="totalAmount">0.00</span> CHF</span>
+      </div>
+      <div class="footer-note">Maximal 6 Positionen. Für Handy bewusst kompakt gehalten.</div>
+    </section>
+
+    <section class="card">
+      <div class="section-head"><h2>Freigabe / Verrechnung</h2></div>
+      <div class="grid grid-2">
+        <div>
+          <label>Verrechnen</label>
+          <div class="inline-options">
+            <label><input type="radio" name="verrechnen" value="nein" checked /> nein</label>
+            <label><input type="radio" name="verrechnen" value="ja" /> ja</label>
+          </div>
+        </div>
+        <div>
+          <label for="schlussDatum">Datum</label>
+          <input id="schlussDatum" type="date" />
+        </div>
       </div>
       <div class="grid grid-2" style="margin-top:12px;">
-        <div><label for="begruendung">Begründung</label><textarea id="begruendung" placeholder="Warum wird die Investition benötigt?"></textarea></div>
-        <div><label for="nutzen">Konkreter Nutzen</label><textarea id="nutzen" placeholder="Zeitgewinn, Qualität, Umsatz, Sicherheit, Schulung …"></textarea></div>
-      </div>
-      <div class="grid grid-2" style="margin-top:12px;">
-        <div><label for="alternativen">Geprüfte Alternativen</label><textarea id="alternativen" placeholder="z. B. Reparatur Altgerät / Leasing / gebraucht"></textarea></div>
-        <div><label for="konsequenz">Folge bei Nichtfreigabe</label><textarea id="konsequenz" placeholder="Was passiert ohne die Investition?"></textarea></div>
+        <div>
+          <label for="visumTl">Visum TL</label>
+          <input id="visumTl" type="text" placeholder="Optional" />
+        </div>
+        <div>
+          <label for="visumGl">Visum GL</label>
+          <input id="visumGl" type="text" placeholder="Optional" />
+        </div>
       </div>
     </section>
 
     <section class="card">
-      <div class="section-head"><h2>Einordnung</h2></div>
-      <div class="grid grid-3">
-        <div>
-          <label>Priorität</label>
-          <select id="prioritaet"><option value="">Bitte wählen…</option><option>Hoch</option><option>Mittel</option><option>Niedrig</option></select>
-        </div>
-        <div>
-          <label>Investitionsart</label>
-          <select id="art"><option value="">Bitte wählen…</option><option>Werkzeug</option><option>Maschine</option><option>IT / Software</option><option>Ausstattung</option><option>Sonstiges</option></select>
-        </div>
-        <div>
-          <label>Dringlichkeit</label>
-          <select id="dringlichkeit"><option value="">Bitte wählen…</option><option>Sofort</option><option>Innerhalb 30 Tage</option><option>Planbar</option></select>
-        </div>
+      <div class="page-actions">
+        <button type="button" id="pdfBtn">PDF erstellen</button>
+        <button type="button" class="ghost" id="resetBtn">Formular leeren</button>
       </div>
-      <div style="margin-top:12px;"><label for="bemerkung">Bemerkung</label><textarea id="bemerkung" placeholder="Optional"></textarea></div>
-    </section>
-
-    <section class="card">
-      <div class="page-actions"><button type="button" id="pdfBtn">PDF erstellen</button><button type="button" class="ghost" id="resetBtn">Formular leeren</button></div>
       <div id="status" class="status"></div>
     </section>
   </main>
 
+  <template id="rowTemplate">
+    <div class="item-row">
+      <div class="item-row-head">
+        <strong>Position <span class="row-number"></span></strong>
+        <button type="button" class="danger remove-btn">Entfernen</button>
+      </div>
+      <div class="grid grid-4">
+        <div>
+          <label>Datum</label>
+          <input type="date" class="item-date" />
+        </div>
+        <div>
+          <label>Bezeichnung</label>
+          <input type="text" class="item-desc" placeholder="z. B. Werkzeug / Gerät / Material" />
+        </div>
+        <div>
+          <label>Anzahl</label>
+          <input type="number" class="item-qty" min="0" step="1" inputmode="numeric" placeholder="1" />
+        </div>
+        <div>
+          <label>Betrag CHF</label>
+          <input type="number" class="item-amount" min="0" step="0.01" inputmode="decimal" placeholder="0.00" />
+        </div>
+      </div>
+    </div>
+  </template>
+
   <script>
     const H = window.HeideggerForms;
+    const MAX_ROWS = 6;
+    const itemsContainer = H.byId('itemsContainer');
+    const rowTemplate = H.byId('rowTemplate');
+    const totalEl = H.byId('totalAmount');
     const statusEl = H.byId('status');
+
+    function formatDate(value) {
+      if (!value) return '—';
+      const [y, m, d] = value.split('-');
+      return y && m && d ? `${d}.${m}.${y}` : value;
+    }
+
+    function updateRowNumbers() {
+      [...document.querySelectorAll('.item-row')].forEach((row, index) => {
+        row.querySelector('.row-number').textContent = index + 1;
+      });
+      const onlyOne = document.querySelectorAll('.item-row').length <= 1;
+      document.querySelectorAll('.remove-btn').forEach(btn => {
+        btn.disabled = onlyOne;
+        btn.style.opacity = onlyOne ? '.55' : '1';
+        btn.style.cursor = onlyOne ? 'not-allowed' : 'pointer';
+      });
+      H.byId('addRowBtn').disabled = document.querySelectorAll('.item-row').length >= MAX_ROWS;
+    }
+
+    function updateTotal() {
+      let total = 0;
+      document.querySelectorAll('.item-amount').forEach(input => {
+        total += Number(input.value || 0);
+      });
+      totalEl.textContent = H.formatMoney(total);
+    }
+
+    function addRow(data = {}) {
+      const count = document.querySelectorAll('.item-row').length;
+      if (count >= MAX_ROWS) {
+        H.showStatus(statusEl, `Maximal ${MAX_ROWS} Positionen.`);
+        return;
+      }
+
+      const clone = rowTemplate.content.cloneNode(true);
+      const row = clone.querySelector('.item-row');
+      const date = row.querySelector('.item-date');
+      const desc = row.querySelector('.item-desc');
+      const qty = row.querySelector('.item-qty');
+      const amount = row.querySelector('.item-amount');
+      const removeBtn = row.querySelector('.remove-btn');
+
+      date.value = data.date || '';
+      desc.value = data.desc || '';
+      qty.value = data.qty || '';
+      amount.value = data.amount || '';
+
+      [date, desc, qty, amount].forEach(el => el.addEventListener('input', updateTotal));
+
+      removeBtn.addEventListener('click', () => {
+        if (document.querySelectorAll('.item-row').length <= 1) return;
+        row.remove();
+        updateRowNumbers();
+        updateTotal();
+      });
+
+      itemsContainer.appendChild(row);
+      updateRowNumbers();
+      updateTotal();
+    }
 
     function resetForm() {
       if (!confirm('Formular wirklich leeren?')) return;
-      document.querySelectorAll('input, textarea, select').forEach(el => el.value = '');
+      document.querySelectorAll('input[type="text"], input[type="date"], input[type="number"]').forEach(el => {
+        if (el.type === 'radio') return;
+        el.value = '';
+      });
+      document.querySelector('input[name="verrechnen"][value="nein"]').checked = true;
+      itemsContainer.innerHTML = '';
+      addRow();
       H.showStatus(statusEl, 'Formular geleert.');
+    }
+
+    function getItems() {
+      return [...document.querySelectorAll('.item-row')].map(row => ({
+        date: row.querySelector('.item-date').value,
+        desc: row.querySelector('.item-desc').value,
+        qty: row.querySelector('.item-qty').value,
+        amount: row.querySelector('.item-amount').value
+      })).filter(item => item.date || item.desc || item.qty || item.amount);
     }
 
     function makePdf() {
       try {
         const doc = H.getPdf();
-        let y = H.pdfHeader(doc, 'Antrag auf Investitionen Aftersales');
-        y = H.pdfMetaTable(doc, [
-          ['Antragsteller', H.byId('antragsteller').value],
-          ['Bereich', H.byId('abteilung').value],
-          ['Datum', H.byId('datum').value],
-          ['Investition', H.byId('titel').value],
-          ['Lieferant', H.byId('lieferant').value]
-        ], y);
+        let y = H.pdfHeader(doc, 'Antrag Beschaffung', 'Max Heidegger AG · Investitionen / Anschaffungen');
 
-        H.pdfSectionTitle(doc, 'Kosten & Wirtschaftlichkeit', y);
         doc.autoTable({
-          startY: y + 3,
+          startY: y,
           theme: 'grid',
-          head: [['Position', 'Wert']],
+          styles: { fontSize: 9, cellPadding: 2.8, lineColor: [180, 184, 191], lineWidth: 0.2 },
           body: [
-            ['Anschaffungskosten netto', H.byId('netto').value ? `${H.formatMoney(H.byId('netto').value)} CHF` : '—'],
-            ['Jährliche Folgekosten', H.byId('folgekosten').value ? `${H.formatMoney(H.byId('folgekosten').value)} CHF` : '—'],
-            ['Geschätzter Nutzen / Einsparung p.a.', H.byId('einsparung').value ? `${H.formatMoney(H.byId('einsparung').value)} CHF` : '—'],
-            ['Priorität', H.byId('prioritaet').value || '—'],
-            ['Investitionsart', H.byId('art').value || '—'],
-            ['Dringlichkeit', H.byId('dringlichkeit').value || '—']
+            [
+              { content: 'Name', styles: { fontStyle: 'bold', fillColor: [247,248,250] } }, H.byId('name').value || '—',
+              { content: 'Abteilung', styles: { fontStyle: 'bold', fillColor: [247,248,250] } }, H.byId('abteilung').value || '—'
+            ],
+            [
+              { content: 'Datum', styles: { fontStyle: 'bold', fillColor: [247,248,250] } }, formatDate(H.byId('kopfDatum').value),
+              { content: '', styles: { fillColor: [255,255,255] } }, ''
+            ]
           ],
-          headStyles: { fillColor: [17,24,39] },
-          styles: { fontSize: 9, cellPadding: 2.5 }
+          columnStyles: {
+            0: { cellWidth: 22 },
+            1: { cellWidth: 78 },
+            2: { cellWidth: 24 },
+            3: { cellWidth: 58 }
+          }
         });
 
-        let nextY = doc.lastAutoTable.finalY + 6;
+        const items = getItems();
+        const body = items.length
+          ? items.map(item => [
+              formatDate(item.date),
+              item.desc || '—',
+              item.qty || '—',
+              item.amount ? `${H.formatMoney(item.amount)} CHF` : '—'
+            ])
+          : [['—', '—', '—', '—']];
+
         doc.autoTable({
-          startY: nextY,
+          startY: doc.lastAutoTable.finalY + 6,
           theme: 'grid',
-          styles: { fontSize: 9, cellPadding: 2.8 },
-          body: [
-            ['Begründung', H.byId('begruendung').value || '—'],
-            ['Konkreter Nutzen', H.byId('nutzen').value || '—'],
-            ['Geprüfte Alternativen', H.byId('alternativen').value || '—'],
-            ['Folge bei Nichtfreigabe', H.byId('konsequenz').value || '—'],
-            ['Bemerkung', H.byId('bemerkung').value || '—']
-          ],
-          columnStyles: { 0: { fontStyle: 'bold', fillColor: [247,248,250], cellWidth: 45 } }
+          head: [['Datum', 'Bezeichnung', 'Anzahl', 'Betrag CHF']],
+          body,
+          foot: [['Total Invest', '', '', `${H.formatMoney(totalEl.textContent)} CHF`]],
+          headStyles: { fillColor: [229, 231, 235], textColor: [0, 0, 0], fontStyle: 'bold' },
+          footStyles: { fillColor: [247,248,250], textColor: [0,0,0], fontStyle: 'bold' },
+          styles: { fontSize: 9, cellPadding: 2.8, lineColor: [180, 184, 191], lineWidth: 0.2 },
+          columnStyles: {
+            0: { cellWidth: 24 },
+            1: { cellWidth: 98 },
+            2: { cellWidth: 22, halign: 'center' },
+            3: { cellWidth: 38, halign: 'right' }
+          }
         });
 
-        H.savePdf(doc, 'investitionsantrag_aftersales');
+        doc.autoTable({
+          startY: doc.lastAutoTable.finalY + 8,
+          theme: 'grid',
+          styles: { fontSize: 9, cellPadding: 2.8, lineColor: [180, 184, 191], lineWidth: 0.2 },
+          body: [
+            [
+              { content: 'Verrechnen', styles: { fontStyle: 'bold', fillColor: [247,248,250] } },
+              document.querySelector('input[name="verrechnen"]:checked')?.value || 'nein',
+              { content: 'Datum', styles: { fontStyle: 'bold', fillColor: [247,248,250] } },
+              formatDate(H.byId('schlussDatum').value)
+            ],
+            [
+              { content: 'Visum TL', styles: { fontStyle: 'bold', fillColor: [247,248,250] } }, H.byId('visumTl').value || '—',
+              { content: 'Visum GL', styles: { fontStyle: 'bold', fillColor: [247,248,250] } }, H.byId('visumGl').value || '—'
+            ]
+          ],
+          columnStyles: {
+            0: { cellWidth: 26 },
+            1: { cellWidth: 66 },
+            2: { cellWidth: 22 },
+            3: { cellWidth: 68 }
+          }
+        });
+
+        H.savePdf(doc, 'antrag_beschaffung');
       } catch (err) {
         H.showStatus(statusEl, 'PDF konnte nicht erstellt werden.');
       }
     }
 
+    H.byId('addRowBtn').addEventListener('click', () => addRow());
     H.byId('pdfBtn').addEventListener('click', makePdf);
     H.byId('resetBtn').addEventListener('click', resetForm);
+
+    addRow();
   </script>
 </body>
 </html>
