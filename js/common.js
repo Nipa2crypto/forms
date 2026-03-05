@@ -46,9 +46,9 @@ window.HeideggerForms = (() => {
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
-    doc.text('MH', 14, 11.5);
+    doc.text('Max Heidegger AG', 14, 11.5);
     doc.setFontSize(13);
-    doc.text(title, 24, 11.5);
+    doc.text(title, 196, 11.5, { align: 'right' });
     doc.setTextColor(31, 41, 55);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);

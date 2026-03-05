@@ -13,18 +13,17 @@
   <header class="topbar">
     <div class="topbar-inner">
       <div class="brand-group">
-        <div class="logo-badge">MH</div>
-        <div><div class="brand-title">Spesenabrechnung</div><div class="brand-sub">PDF-Ausgabe ohne Speicherung</div></div>
+        <img class="logo" src="assets/logo.png" alt="Max Heidegger AG" />
+        <div>
+          <div class="brand-title">Spesenabrechnung</div>
+          <div class="brand-sub">PDF-Ausgabe ohne Speicherung</div>
+        </div>
       </div>
       <a class="link-btn secondary" href="index.html">Übersicht</a>
     </div>
   </header>
 
   <main class="wrap">
-    <div class="card">
-      <a class="backlink" href="index.html">← Zurück zur Übersicht</a>
-    </div>
-
     <section class="card">
       <div class="section-head"><h2>Stammdaten</h2></div>
       <div class="grid grid-4">
@@ -42,7 +41,7 @@
       </div>
       <div id="items"></div>
       <div class="total-box"><span>Total Spesen</span><span><span id="total">0.00</span> CHF</span></div>
-      <small class="hint">Maximal 4 Positionen. Die PDF-Ausgabe ist auf ein kompaktes Standardformular ausgelegt.</small>
+      <small class="hint">Maximal 4 Positionen. Pro Position können bis zu 3 Belegbilder angehängt werden (nur Bilder).</small>
     </section>
 
     <section class="card">
@@ -64,20 +63,13 @@
       </div>
     </section>
 
-
-    <section class="card">
-      <div class="section-head"><h2>Belege</h2></div>
-      <div><label for="belege">Bilder oder PDF auswählen</label><input id="belege" type="file" accept="image/*,.pdf,application/pdf" multiple /></div>
-      <div id="belegListe" class="preview-list" style="margin-top:12px;"></div>
-      <small class="hint">Bildbelege werden direkt in die PDF eingebettet. PDF-Dateien werden im PDF als Dateiname dokumentiert.</small>
-    </section>
-
     <section class="card">
       <div class="page-actions">
         <button type="button" id="pdfBtn">PDF erstellen</button>
         <button type="button" class="ghost" id="resetBtn">Formular leeren</button>
       </div>
       <div id="status" class="status"></div>
+      <div class="footer-note">PDF wird lokal im Browser erzeugt. Belegbilder werden in die PDF eingebettet.</div>
     </section>
   </main>
 
@@ -93,6 +85,12 @@
         <div><label>Teilnehmer</label><input type="text" class="i-part" placeholder="Optional" /></div>
         <div><label>Betrag CHF</label><input type="number" class="i-amount" min="0" step="0.01" placeholder="0.00" /></div>
       </div>
+      <div style="margin-top:12px;">
+        <label>Belegbilder (max. 3)</label>
+        <input class="file-input i-files" type="file" accept="image/*" multiple />
+        <div class="preview-grid i-preview"></div>
+        <small class="hint">Nur Bilder (JPG/PNG/HEIC). PDFs bitte separat einreichen.</small>
+      </div>
     </div>
   </template>
 
@@ -102,28 +100,23 @@
     const rowTpl = H.byId('rowTpl');
     const totalEl = H.byId('total');
     const statusEl = H.byId('status');
-    const belegInput = H.byId('belege');
-    const belegListe = H.byId('belegListe');
-    const MAX_ROWS = 4;
+    const pdfBtn = H.byId('pdfBtn');
 
-    function renderBelegListe() {
-      const files = belegInput?.files ? [...belegInput.files] : [];
-      belegListe.innerHTML = files.length
-        ? files.map(file => `<div class="preview-pill">${file.name}</div>`).join('')
-        : '';
-    }
+    const MAX_ROWS = 4;
+    const MAX_IMAGES_PER_ROW = 3;
 
     function reindex() {
       const rows = [...document.querySelectorAll('.item-row')];
       rows.forEach((row, i) => row.querySelector('.row-index').textContent = i + 1);
+
       rows.forEach((row) => {
         const btn = row.querySelector('.removeBtn');
-        btn.disabled = rows.length === 1;
-        btn.style.opacity = rows.length === 1 ? '.55' : '1';
-        btn.style.cursor = rows.length === 1 ? 'not-allowed' : 'pointer';
+        const disabled = rows.length === 1;
+        btn.disabled = disabled;
       });
-      H.byId('addRowBtn').disabled = rows.length >= MAX_ROWS;
-      H.byId('addRowBtn').style.opacity = rows.length >= MAX_ROWS ? '.55' : '1';
+
+      const addBtn = H.byId('addRowBtn');
+      addBtn.disabled = rows.length >= MAX_ROWS;
     }
 
     function updateTotal() {
@@ -132,63 +125,99 @@
       totalEl.textContent = H.formatMoney(total);
     }
 
+    function clearPreview(previewEl){ previewEl.innerHTML = ''; }
+
+    function limitFilesTo3(inputEl){
+      if (!inputEl.files) return;
+      const files = [...inputEl.files].filter(f => (f.type || '').startsWith('image/'));
+      const limited = files.slice(0, MAX_IMAGES_PER_ROW);
+      // Can't programmatically set FileList reliably; we just warn and preview first 3.
+      // For clarity, we render only first 3 and ignore the rest in PDF.
+      inputEl._mhLimitedFiles = limited;
+    }
+
+    async function renderPreviewForRow(row){
+      const inputEl = row.querySelector('.i-files');
+      const previewEl = row.querySelector('.i-preview');
+      clearPreview(previewEl);
+      limitFilesTo3(inputEl);
+      const files = inputEl._mhLimitedFiles || [];
+      for (const f of files){
+        const data = await H.collectImageData({ files: [f] });
+        const img = document.createElement('img');
+        img.src = data[0].dataUrl;
+        img.alt = f.name;
+        previewEl.appendChild(img);
+      }
+    }
+
     function addRow() {
       if (document.querySelectorAll('.item-row').length >= MAX_ROWS) return;
       const node = rowTpl.content.cloneNode(true);
       const row = node.querySelector('.item-row');
-      row.querySelectorAll('input').forEach(el => el.addEventListener('input', updateTotal));
+
+      row.querySelectorAll('input.i-date,input.i-desc,input.i-part,input.i-amount').forEach(el => {
+        el.addEventListener('input', updateTotal);
+      });
+
       row.querySelector('.removeBtn').addEventListener('click', () => {
         if (document.querySelectorAll('.item-row').length === 1) return;
         row.remove();
         reindex();
         updateTotal();
       });
+
+      row.querySelector('.i-files').addEventListener('change', () => {
+        renderPreviewForRow(row);
+      });
+
       items.appendChild(row);
       reindex();
       updateTotal();
     }
 
-    belegInput.addEventListener('change', renderBelegListe);
-
     function resetForm() {
       if (!confirm('Formular wirklich leeren?')) return;
-      document.querySelectorAll('input:not([type="radio"]), textarea').forEach(el => el.value = '');
-      belegInput.value = '';
-      belegListe.innerHTML = '';
+      document.querySelectorAll('input:not([type="radio"]), textarea').forEach(el => {
+        if (el.type === 'file') el.value = '';
+        else el.value = '';
+      });
       document.querySelector('input[name="verrechnen"][value="Nein"]').checked = true;
       items.innerHTML = '';
       addRow();
       H.showStatus(statusEl, 'Formular geleert.');
     }
 
-    function collect() {
-      return {
-        name: H.byId('name').value,
-        abteilung: H.byId('abteilung').value,
-        marke: H.byId('marke').value,
-        formularDatum: H.byId('formularDatum').value,
-        verrechnen: document.querySelector('input[name="verrechnen"]:checked')?.value || 'Nein',
-        kartenNr: H.byId('kartenNr').value,
-        visum: H.byId('visum').value,
-        betragErhalten: H.byId('betragErhalten').value,
-        bemerkung: H.byId('bemerkung').value,
-        fileNames: H.collectFiles(belegInput),
-        rows: [...document.querySelectorAll('.item-row')].map(row => ({
+    function collectRows(){
+      return [...document.querySelectorAll('.item-row')].map(row => {
+        const inputEl = row.querySelector('.i-files');
+        limitFilesTo3(inputEl);
+        return {
           datum: row.querySelector('.i-date').value,
           text: row.querySelector('.i-desc').value,
           teilnehmer: row.querySelector('.i-part').value,
-          betrag: row.querySelector('.i-amount').value
-        }))
-      };
+          betrag: row.querySelector('.i-amount').value,
+          files: inputEl._mhLimitedFiles || []
+        };
+      });
     }
 
     async function makePdf() {
+      pdfBtn.disabled = true;
+      H.showStatus(statusEl, 'PDF wird erstellt …');
       try {
-        const data = collect();
-        const imageFiles = await H.collectImageData(belegInput);
-        const nonImageNames = (belegInput?.files ? [...belegInput.files] : [])
-          .filter(file => !file.type.startsWith('image/'))
-          .map(file => file.name);
+        const data = {
+          name: H.byId('name').value,
+          abteilung: H.byId('abteilung').value,
+          marke: H.byId('marke').value,
+          formularDatum: H.byId('formularDatum').value,
+          verrechnen: document.querySelector('input[name="verrechnen"]:checked')?.value || 'Nein',
+          kartenNr: H.byId('kartenNr').value,
+          visum: H.byId('visum').value,
+          betragErhalten: H.byId('betragErhalten').value,
+          bemerkung: H.byId('bemerkung').value,
+          rows: collectRows()
+        };
 
         const doc = H.getPdf();
         let y = H.pdfHeader(doc, 'Spesenabrechnung');
@@ -220,30 +249,35 @@
           ['Bemerkung', data.bemerkung]
         ], nextY);
 
-        H.pdfSectionTitle(doc, 'Belege', nextY);
-        doc.autoTable({
-          startY: nextY + 3,
-          theme: 'grid',
-          styles: { fontSize: 9, cellPadding: 2.5 },
-          body: (nonImageNames.length ? nonImageNames : ['Keine PDF-Anhänge']).map(name => [name])
-        });
-
-        let imageY = doc.lastAutoTable.finalY + 8;
-        if (imageFiles.length) {
-          H.pdfSectionTitle(doc, 'Bildbelege', imageY);
-          imageY += 4;
-          await H.addImagesToPdf(doc, imageFiles, imageY);
+        // Belege pro Position
+        for (let i = 0; i < data.rows.length; i++) {
+          const r = data.rows[i];
+          if (!r.files.length) continue;
+          const imageData = [];
+          for (const f of r.files) {
+            const arr = await H.collectImageData({ files: [f] });
+            if (arr[0]) imageData.push(arr[0]);
+          }
+          if (!imageData.length) continue;
+          nextY += 4;
+          H.pdfSectionTitle(doc, `Belegbilder Position ${i + 1}`, nextY);
+          nextY = await H.addImagesToPdf(doc, imageData, nextY + 4);
         }
 
         H.savePdf(doc, 'spesenabrechnung');
+        H.showStatus(statusEl, 'PDF erstellt.');
       } catch (err) {
+        console.error(err);
         H.showStatus(statusEl, 'PDF konnte nicht erstellt werden.');
+      } finally {
+        pdfBtn.disabled = false;
       }
     }
 
     H.byId('addRowBtn').addEventListener('click', addRow);
     H.byId('pdfBtn').addEventListener('click', makePdf);
     H.byId('resetBtn').addEventListener('click', resetForm);
+
     addRow();
   </script>
 </body>
